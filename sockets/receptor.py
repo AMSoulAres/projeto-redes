@@ -10,6 +10,11 @@ import json
 
 class ReceptorGUI:
     def __init__(self):
+        #TODO: descomentar quando implementar a modulação
+        #  # Inicializa módulos de modulação
+        # self.mod_digital = ModulacaoDigital(taxa_amostragem=100)
+        # self.mod_portadora = ModulacaoPortadora(freq_portadora=1000, taxa_amostragem=100)
+
         self.window = Gtk.Window(title="Receptor de Comunicação Digital")
         self.window.set_default_size(800, 600)
         self.window.connect("destroy", Gtk.main_quit)
@@ -112,6 +117,45 @@ class ReceptorGUI:
             mark = buffer.create_mark(None, buffer.get_end_iter(), False)
             self.text_received.scroll_to_mark(mark, 0.0, True, 0.0, 1.0)
         GLib.idle_add(append_text)
+
+    #TODO: descomentar quando implementar a modulação
+    # def atualizar_visualizacao(self, texto: str, mod_digital: str, mod_portadora: str):
+    #     """Atualiza a visualização dos sinais."""
+    #     def update():
+    #         # Gera bits a partir do texto
+    #         bits = [int(b) for byte in texto.encode('utf-8') for b in format(byte, '08b')]
+            
+    #         # Aplica modulação digital
+    #         if mod_digital == "NRZ-Polar":
+    #             tempo, sinal_digital = self.mod_digital.nrz_polar(bits)
+    #         elif mod_digital == "Manchester":
+    #             tempo, sinal_digital = self.mod_digital.manchester(bits)
+    #         else:  # Bipolar
+    #             tempo, sinal_digital = self.mod_digital.bipolar(bits)
+            
+    #         # Aplica modulação por portadora
+    #         if mod_portadora == "ASK":
+    #             tempo_mod, sinal_modulado = self.mod_portadora.ask(bits)
+    #         elif mod_portadora == "FSK":
+    #             tempo_mod, sinal_modulado = self.mod_portadora.fsk(bits)
+    #         else:  # 8-QAM
+    #             tempo_mod, sinal_modulado = self.mod_portadora.qam8(bits)
+            
+    #         # Atualiza gráficos
+    #         self.ax1.clear()
+    #         self.ax2.clear()
+            
+    #         self.ax1.plot(tempo, sinal_digital)
+    #         self.ax1.set_title(f"Sinal Digital Recebido ({mod_digital})")
+    #         self.ax1.grid(True)
+            
+    #         self.ax2.plot(tempo_mod, sinal_modulado)
+    #         self.ax2.set_title(f"Sinal Modulado Recebido ({mod_portadora})")
+    #         self.ax2.grid(True)
+            
+    #         self.fig.canvas.draw()
+            
+    #     GLib.idle_add(update)
     
     def atualizar_visualizacao(self, texto: str, mod_digital: str, mod_portadora: str):
         """Atualiza a visualização dos sinais."""
