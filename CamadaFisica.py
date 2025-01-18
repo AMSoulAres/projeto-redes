@@ -63,7 +63,7 @@ class ModulacaoPortadora:
         self.taxa_amostragem = taxa_amostragem
         self.amplitude = amplitude
 
-    def ask(self, bits):
+    def ask(self, bits):    # Usar mesmo valor de amostragem e freq
         # Calcula o vetor do tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
 
