@@ -232,7 +232,7 @@ axs[2].legend()
 # Ajustando o layout para não sobrepor os gráficos
 plt.tight_layout()
 plt.show()
-"""
+
 
 
 # Testando a modulação ASK com portadora
@@ -324,3 +324,5 @@ def plot_8qam_results(mod, bits):
 mod = ModulacaoPortadora(taxa_amostragem=1000, amplitude=1)
 bits_teste = [1, 1, 0, 0, 0, 1, 1, 1, 0]
 plot_8qam_results(mod, bits_teste)
+
+"""
