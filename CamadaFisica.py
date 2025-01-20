@@ -55,7 +55,40 @@ class ModulacaoDigital:
         sinal_modulado = np.repeat(sinal, self.taxa_amostragem)
         
         return tempo, sinal_modulado
+    
+    def nrz_polar_decode(self, sinal):
+        # Decodifica o sinal do padrão NRZ Polar
+        bits = [-1 if componente < 0 else 0 for componente in sinal]
+
+        return bits
+
+    def manchester_decode(self, sinal):
+        # Inicializa o vetor de bits
+        bits = []
+
+        tamanho_sinal = len(sinal)
+
+        # Loop com metade do tamanho da array do sinal (interagir de dois em dois)
+        for i in range(0, tamanho_sinal/2):
+            if sinal[i] == -self.amplitude and sinal[i+1] == self.amplitude:  # Essa função depende de como vamos implementar o receptor e transmissor
+                bits.append(0)                                                # O ideal nesse caso seria passar parametros iguais para inicializacao da
+            elif sinal[i] == self.amplitude and sinal[i+1] == -self.amplitude:  # classe tanto no receptor como no transmissor
+                bits.append(1)
+
+        return bits
+
+    def bipolar_decode(self, sinal):
+        # Inicializa o vetor de bits
+        bits = []
+
+        for amplitude in sinal:
+            if amplitude == 0: 
+                bits.append(0)
+            else:               # Tanto negativo quanto positivo equivalem ao bit 1
+                bits.append(1)
         
+        return bits
+
 
 class ModulacaoPortadora:
     def __init__(self, taxa_amostragem=1000, amplitude=1):
