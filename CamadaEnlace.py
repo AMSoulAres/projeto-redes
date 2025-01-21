@@ -30,7 +30,7 @@ class CamadaEnlace:
                 # print("Após Hamming:", payload)
             tamanho_payload = len(payload) // 8
             quadro = f"{tamanho_payload:08b}" + payload
-            print("Quadro final:", quadro)
+            # print("Quadro final:", quadro)
             quadros.append(quadro)
         return quadros
 
