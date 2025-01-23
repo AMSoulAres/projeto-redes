@@ -191,9 +191,110 @@ class ModulacaoPortadora:
         
         return tempo, sinal_modulado
 
+    def ask_decode(self, sinal):
+
+        # Inicializa o vetor de bits
+        bits = []
+
+        for amplitude in sinal:
+            if ampltiude == 0:
+                bits.append(0)
+            else:
+                bits.append(1)
+
+        return bits
+    
+    def fsk_decode(self, sinal, freq_low=1, freq_high=2):
+
+        # Dividindo o sinal nos intervalos correspondentes a cada bit
+        bits = []
+        amostras_por_bit = self.taxa_amostragem  # Número de amostras por bit
+        num_bits = len(sinal) // amostras_por_bit  # Total de bits no sinal
+
+        for i in range(num_bits):
+            # Extrai a parte do sinal correspondente ao bit atual
+            segmento = sinal[i * amostras_por_bit:(i + 1) * amostras_por_bit]
+            
+            # Aplica a Transformada de Fourier para identificar a frequência predominante
+            fft_result = np.fft.fft(segmento)
+            fft_frequencies = np.fft.fftfreq(len(segmento), d=1/self.taxa_amostragem)
+            
+            # Identifica a frequência dominante (ignora a parte negativa das frequências)
+            dominante = abs(fft_frequencies[np.argmax(abs(fft_result))])
+            
+            # Decodifica o bit com base na frequência dominante
+            if abs(dominante - freq_high) < abs(dominante - freq_low):
+                bits.append(1)
+            else:
+                bits.append(0)
+
+        return bits
+
+    def qam8_decode(self, sinal, freq_portadora=1):
+
+        # Define os pontos da constelação 8-QAM
+        constelacao = {
+            (-self.amplitude, -self.amplitude): (0, 0, 0),
+            (-self.amplitude, self.amplitude): (0, 0, 1),
+            (self.amplitude, -self.amplitude): (0, 1, 0),
+            (self.amplitude, self.amplitude): (0, 1, 1),
+            (-2*self.amplitude, 0): (1, 0, 0),
+            (0, -2*self.amplitude): (1, 0, 1),
+            (2*self.amplitude, 0): (1, 1, 0),
+            (0, 2*self.amplitude): (1, 1, 1)
+        }
+
+        # Número de amostras por símbolo
+        amostras_por_simbolo = self.taxa_amostragem
+
+        # Inicializa o vetor de bits decodificados
+        bits = []
+
+        # Itera sobre o sinal recebido, símbolo por símbolo
+        for i in range(0, len(sinal), amostras_por_simbolo):
+            # Extrai o segmento do sinal correspondente ao símbolo atual
+            segmento = sinal[i:i+amostras_por_simbolo]
+            
+            # Gera o tempo para o símbolo
+            t = np.linspace(0, 1, self.taxa_amostragem)
+
+            # Reconstroi as componentes I e Q do sinal
+            componente_i = 2 * np.mean(segmento * np.cos(2 * np.pi * freq_portadora * t))
+            componente_q = -2 * np.mean(segmento * np.sin(2 * np.pi * freq_portadora * t))
+            
+            # Encontra o ponto da constelação mais próximo
+            ponto_constelacao = min(constelacao.keys(), 
+                                    key=lambda p: np.sqrt((componente_i - p[0])**2 + (componente_q - p[1])**2))
+
+            # Adiciona os bits correspondentes ao símbolo decodificado
+            bits.extend(constelacao[ponto_constelacao])
+
+        return bits
+
+
 
 
 """
+modulador = ModulacaoPortadora(taxa_amostragem=2000, amplitude=1)
+bits = [1, 0, 1, 1, 0]
+tempo, sinal_modulado = modulador.fsk(bits, freq_low=500, freq_high=1000)
+
+# Decodificação do sinal
+bits_decodificados = modulador.fsk_decode(sinal_modulado, freq_low=500, freq_high=1000)
+
+print("Bits originais:", bits)
+print("Bits decodificados:", bits_decodificados)
+
+modulador = ModulacaoPortadora(amplitude=1, taxa_amostragem=100)
+bits = [0, 0, 0, 0, 1, 1, 1, 1, 0]
+tempo, sinal_modulado = modulador.qam8(bits)
+
+# Decodificação do sinal
+bits_decodificados = modulador.qam8_decode(sinal_modulado, freq_portadora=1)
+
+print("Bits originais:", bits)
+print("Bits decodificados:", bits_decodificados)
+
 modulador = ModulacaoDigital(taxa_amostragem=100)  # 100 amostras por bit
 bits = [0, 1, 0, 1, 0, 0, 1, 1]  # Sequência de bits a ser modulada
 
@@ -269,9 +370,9 @@ plt.tight_layout()
 plt.show()
 
 def plot_8qam_results(mod, bits):
-    """
-    Plota resultados completos da modulação 8-QAM com escalas corrigidas
-    """
+    
+    #Plota resultados completos da modulação 8-QAM com escalas corrigidas
+    
     # Gera o sinal modulado
     tempo, sinal_modulado = mod.qam8(bits)
     

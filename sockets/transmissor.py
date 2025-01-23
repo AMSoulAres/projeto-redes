@@ -7,14 +7,18 @@ import numpy as np
 import socket
 import threading
 import json
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from CamadaFisica import *
 
 class TransmissorGUI:
     def __init__(self):
         #TODO: descomentar quando implementar a modulação
         
         #   # Inicializa módulos de modulação
-        # self.mod_digital = ModulacaoDigital(taxa_amostragem=100)
-        # self.mod_portadora = ModulacaoPortadora(freq_portadora=1000, taxa_amostragem=100)
+        self.mod_digital = ModulacaoDigital()
+        self.mod_portadora = ModulacaoPortadora()
         
         self.window = Gtk.Window(title="Transmissor de Comunicação Digital")
         self.window.set_default_size(800, 600)
@@ -169,60 +173,69 @@ class TransmissorGUI:
             except Exception as e:
                 self.adicionar_log(f"Erro ao desconectar: {str(e)}")
 
-    #TODO: descomentar quando implementar a modulação
-
-    #  def on_transmitir_clicked(self, button):
-    #     """Manipula o evento de clique no botão transmitir."""
-    #     if not self.connected:
-    #         self.adicionar_log("Erro: Não conectado ao receptor")
-    #         return
-
-    #     buffer = self.entrada_texto.get_buffer()
-    #     texto = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-        
-    #     if not texto:
-    #         self.adicionar_log("Erro: Nenhum dado para transmitir")
-    #         return
-
-    #     try:
-    #         # Prepara os dados para transmissão
-    #         mod_digital = self.combo_modulacao.get_active_text()
-    #         mod_portadora = self.combo_portadora.get_active_text()
-            
-    #         dados = {
-    #             'texto': texto,
-    #             'modulacao_digital': mod_digital,
-    #             'modulacao_portadora': mod_portadora
-    #         }
-            
-    #         # Envia os dados
-    #         self.socket.sendall(json.dumps(dados).encode('utf-8'))
-            
-    #         # Gera bits a partir do texto
-    #         bits = [int(b) for byte in texto.encode('utf-8') for b in format(byte, '08b')]
-            
-    #         # Aplica modulação digital selecionada
-    #         if mod_digital == "NRZ-Polar":
-    #             tempo, sinal = self.mod_digital.nrz_polar(bits)
-    #         elif mod_digital == "Manchester":
-    #             tempo, sinal = self.mod_digital.manchester(bits)
-    #         else:  # Bipolar
-    #             tempo, sinal = self.mod_digital.bipolar(bits)
-            
-    #         # Plota o sinal
-    #         self.ax1.clear()
-    #         self.ax1.step(tempo, sinal, where='post')
-    #         self.ax1.set_title(f"Sinal Digital ({mod_digital})")
-    #         self.ax1.grid(True)
-    #         self.fig.canvas.draw()
-            
-    #         self.adicionar_log(f"Dados transmitidos usando {mod_digital} e {mod_portadora}")
-            
-    #     except Exception as e:
-    #         self.adicionar_log(f"Erro na transmissão: {str(e)}")
+    """#TODO: descomentar quando implementar a modulação
 
     def on_transmitir_clicked(self, button):
-        """Manipula o evento de clique no botão transmitir."""
+        #Manipula o evento de clique no botão transmitir.
+        if not self.connected:
+            self.adicionar_log("Erro: Não conectado ao receptor")
+            return
+
+        buffer = self.entrada_texto.get_buffer()
+        texto = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+        
+        if not texto:
+            self.adicionar_log("Erro: Nenhum dado para transmitir")
+            return
+
+        try:
+            # Prepara os dados para transmissão
+            mod_digital = self.combo_modulacao.get_active_text()
+            mod_portadora = self.combo_portadora.get_active_text()
+            
+            dados = {
+                'texto': texto,
+                'modulacao_digital': mod_digital,
+                'modulacao_portadora': mod_portadora
+            }
+            
+            # Envia os dados
+            self.socket.sendall(json.dumps(dados).encode('utf-8'))
+            
+            # Gera bits a partir do texto
+            bits = [int(b) for byte in texto.encode('utf-8') for b in format(byte, '08b')]
+            
+            # Aplica modulação digital selecionada
+            if mod_digital == "NRZ-Polar":
+                tempo, sinal = self.mod_digital.nrz_polar(bits)
+            elif mod_digital == "Manchester":
+                tempo, sinal = self.mod_digital.manchester(bits)
+            else:  # Bipolar
+                tempo, sinal = self.mod_digital.bipolar(bits)
+            
+            # Plota o sinal
+            self.ax1.clear()
+            self.ax1.step(tempo, sinal, where='post')
+            self.ax1.set_title(f"Sinal Digital ({mod_digital})")
+            self.ax1.grid(True)
+            self.fig.canvas.draw()
+
+            # Aplica a modulação portadora
+            if mod_portadora == "ASK":
+                tempo, sinal = self.mod_portadora.ask(bits)
+            elif mod_portadora == "FSK":
+                tempo, sinal = self.mod_portadora.fsk(bits)
+            else:   # 8QAM
+                tempo, sinal = self.mod_portadora.qam8(bits)
+            
+
+            self.adicionar_log(f"Dados transmitidos usando {mod_digital} e {mod_portadora}")
+            
+        except Exception as e:
+            self.adicionar_log(f"Erro na transmissão: {str(e)}")
+
+    """def on_transmitir_clicked(self, button):
+        #Manipula o evento de clique no botão transmitir
         if not self.connected:
             self.adicionar_log("Erro: Não conectado ao receptor")
             return
@@ -260,6 +273,7 @@ class TransmissorGUI:
             
         except Exception as e:
             self.adicionar_log(f"Erro na transmissão: {str(e)}")
+
 
     def iniciar(self):
         """Inicia a interface gráfica."""
