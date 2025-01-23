@@ -21,16 +21,18 @@ class CamadaEnlace:
         while dados:
             payload = dados[:tamanho_maximo]
             dados = dados[tamanho_maximo:]
-            # print("Payload original:", payload)
+            print("Payload original:", payload)
             for method in self.detection_methods:
                 payload = method(payload)
-                # print("Após método de detecção:", payload)
+                print("Após método de detecção:", payload)
             if self.hamming_enabled:
                 payload = self.codificar_hamming(payload)
-                # print("Após Hamming:", payload)
-            tamanho_payload = len(payload) // 8
-            quadro = f"{tamanho_payload:08b}" + payload
-            # print("Quadro final:", quadro)
+                print("Após Hamming:", payload)
+            
+            # Calcula o tamanho do payload em bytes (arredondando para cima)
+            tamanho_bytes = (len(payload) + 7) // 8  # Arredonda para cima
+            quadro = f"{tamanho_bytes:08b}" + payload
+            print("Quadro final:", quadro)
             quadros.append(quadro)
         return quadros
 
@@ -67,39 +69,70 @@ class CamadaEnlace:
 
     def codificar_hamming(self, dados):
         """ Adiciona bits de Hamming para correção de erros """
-        bits = bitarray(dados)
-        hamming_bits = bitarray()
-        i, j = 0, 1
-        while i < len(bits):
-            if j & (j - 1) == 0:
-                hamming_bits.append(0)
-            else:
-                hamming_bits.append(bits[i])
-                i += 1
-            j += 1
-        for k in range(len(hamming_bits)):
-            if (k + 1) & (k + 2) == 0:
-                continue
-            value = 0
-            for m in range(k + 1, len(hamming_bits) + 1):
-                if m & (k + 1):
-                    value ^= hamming_bits[m - 1]
-            hamming_bits[k] = value
-        return hamming_bits.to01()
+        # Converte dados para lista de bits
+        bits = [int(x) for x in dados]
+        n = len(bits)
+        
+        # Calcula quantidade de bits de paridade necessários
+        m = 0
+        while (1 << m) < (n + m + 1):
+            m += 1
+        
+        # Cria vetor com espaço para bits de paridade
+        hamming = [0] * (n + m)
+        
+        # Posiciona bits de dados
+        j = 0
+        for i in range(1, len(hamming) + 1):
+            if (i & (i - 1)) != 0:  # Não é potência de 2
+                hamming[i - 1] = bits[j]
+                j += 1
+        
+        # Calcula bits de paridade
+        for i in range(m):
+            pos = (1 << i) - 1
+            valor = 0
+            for j in range(pos, len(hamming), 1 << (i + 1)):
+                for k in range(j, min(j + (1 << i), len(hamming))):
+                    valor ^= hamming[k]
+            hamming[pos] = valor
+        
+        # Converte para string binária
+        return ''.join(map(str, hamming))
 
     # Recepção
     def desenquadrar_contagem(self, quadros):
-        """ Desenquadra os dados utilizando contagem de bytes """
         dados = ""
         for quadro in quadros:
-            tamanho = int(quadro[:8], 2) * 8
-            payload = quadro[8:8 + tamanho]
+            # Converte os 8 primeiros bits para tamanho do payload em bytes
+            tamanho_bytes = int(quadro[:8], 2)
+            
+            # Calcula o tamanho em bits (8 bits por byte)
+            tamanho_bits = tamanho_bytes * 8
+            
+            # Extrai o payload completo
+            payload = quadro[8:8 + tamanho_bits]
+            
+            # Aplica decodificação Hamming se habilitado
             if self.hamming_enabled:
                 payload = self.decodificar_hamming(payload)
+                print("Após decodificar Hamming:", payload)
+            
+            # Verifica métodos de detecção
             for method in self.detection_methods:
-                if not method(payload):
-                    raise ValueError("Erro detectado no quadro")
+                if method == self.adicionar_crc:
+                    # Remove o CRC-32 (últimos 32 bits) após a verificação
+                    if not self.verificar_crc(payload):
+                        raise ValueError("Erro detectado no quadro (CRC-32 inválido)")
+                    payload = payload[:-32]
+                elif method == self.adicionar_paridade:
+                    # Remove o bit de paridade (último bit) após a verificação
+                    if not self.verificar_paridade(payload):
+                        raise ValueError("Erro detectado no quadro (Paridade inválida)")
+                    payload = payload[:-1]
+            
             dados += payload
+        
         return dados
 
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
@@ -121,6 +154,11 @@ class CamadaEnlace:
             for method in self.detection_methods:
                 if not method(desescaped_payload):
                     raise ValueError("Erro detectado no quadro")
+            
+            if self.adicionar_crc in self.detection_methods:
+                # Remove o CRC-32 (últimos 32 bits) após a verificação
+                desescaped_payload = desescaped_payload[:-32]
+            
             dados += desescaped_payload
         return dados
 
@@ -138,28 +176,43 @@ class CamadaEnlace:
 
     def decodificar_hamming(self, dados):
         """ Decodifica bits de Hamming e corrige um erro """
-        bits = bitarray(dados)
+        # Converte dados para lista de bits
+        bits = [int(x) for x in dados]
+        
+        # Calcula quantidade de bits de paridade
+        m = 0
+        while (1 << m) < len(bits) + 1:
+            m += 1
+        
+        # Verifica posição do erro
         erro = 0
-        j = 1
-        while j <= len(bits):
-            if j & (j - 1) == 0:
-                paridade = 0
-                for i in range(j, len(bits) + 1):
-                    if i & j:
-                        paridade ^= bits[i - 1]
-                if paridade:
-                    erro += j
-            j *= 2
-        if erro:
+        for i in range(m):
+            pos = (1 << i) - 1
+            valor = 0
+            for j in range(pos, len(bits), 1 << (i + 1)):
+                for k in range(j, min(j + (1 << i), len(bits))):
+                    valor ^= bits[k]
+            if valor != 0:
+                erro += (1 << i)
+        
+        # Corrige erro apenas se estiver dentro do intervalo
+        if 0 < erro <= len(bits):
             bits[erro - 1] ^= 1
-        return bits.to01()
-
+        
+        # Recupera bits de dados originais
+        dados_recuperados = []
+        for i in range(1, len(bits) + 1):
+            if (i & (i - 1)) != 0:  # Não é potência de 2
+                dados_recuperados.append(bits[i - 1])
+        
+        return ''.join(map(str, dados_recuperados))
 
 # Exemplo de uso
 if __name__ == "__main__":
-    camada_enlace = CamadaEnlace(["Paridade"])     #"CRC-32", "Hamming"])
+    camada_enlace = CamadaEnlace(["CRC-32"])     #"CRC-32", "Paridade"])
 
     dados = "1010101011110000"
+    #"1010101011110000"
 
     # Enquadramento e transmissão
     quadros = camada_enlace.enquadrar_contagem(dados, 16)
