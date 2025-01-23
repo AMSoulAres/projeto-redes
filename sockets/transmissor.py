@@ -71,9 +71,11 @@ class TransmissorGUI:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         frame.add(box)
 
-        self.entrada_texto = Gtk.TextView()
+        self.entrada_texto = Gtk.TextView() 
         self.entrada_texto.set_wrap_mode(Gtk.WrapMode.WORD)
         scroll = Gtk.ScrolledWindow()
+        scroll.set_min_content_height(50)  # Altura mínima da entrada de dados
+        scroll.set_size_request(-1, 100)   # Ajusta o tamanho inicial
         scroll.add(self.entrada_texto)
         box.pack_start(scroll, True, True, 0)
 
@@ -86,7 +88,8 @@ class TransmissorGUI:
         bbox.add(self.btn_transmitir)
         
         box.pack_start(bbox, False, False, 0)
-        self.main_box.pack_start(frame, True, True, 0)
+        frame.set_vexpand(False)  # Entrada de dados não cresce verticalmente
+        self.main_box.pack_start(frame, False, False, 0)
 
     def criar_area_configuracao(self):
         """Cria área de configuração dos parâmetros."""
@@ -119,17 +122,28 @@ class TransmissorGUI:
     def criar_area_visualizacao(self):
         """Cria área para visualização dos sinais."""
         frame = Gtk.Frame(label="Visualização")
-        self.fig, self.ax1 = plt.subplots(1, 1, figsize=(8, 4))
         
+        # Ajusta a figura para ter dois subplots lado a lado
+        self.fig, (self.ax1, self.ax2) = plt.subplots(1, 2, figsize=(12, 6))  # 1 linha, 2 colunas
         self.ax1.set_title("Sinal Digital")
+        self.ax2.set_title("Sinal da Portadora")
+        
+        self.ax1.grid(True)
+        self.ax2.grid(True)
+        
+        # Adiciona o canvas para exibir os gráficos na interface GTK
         canvas = FigureCanvas(self.fig)
         frame.add(canvas)
+        
         self.main_box.pack_start(frame, True, True, 0)
+
 
     def criar_area_log(self):
         """Cria área para exibição de logs."""
         frame = Gtk.Frame(label="Log")
         scroll = Gtk.ScrolledWindow()
+        scroll.set_min_content_height(50)  # Altura mínima do log
+        scroll.set_size_request(-1, 100)   # Ajusta o tamanho inicial
         frame.add(scroll)
 
         self.text_log = Gtk.TextView()
@@ -137,7 +151,8 @@ class TransmissorGUI:
         self.text_log.set_wrap_mode(Gtk.WrapMode.WORD)
         scroll.add(self.text_log)
 
-        self.main_box.pack_start(frame, True, True, 0)
+        frame.set_vexpand(False)  # Log não cresce verticalmente
+        self.main_box.pack_start(frame, False, False, 0)
 
     def adicionar_log(self, mensagem: str):
         """Adiciona mensagem ao log."""
@@ -173,10 +188,10 @@ class TransmissorGUI:
             except Exception as e:
                 self.adicionar_log(f"Erro ao desconectar: {str(e)}")
 
-    """#TODO: descomentar quando implementar a modulação
+    #TODO: descomentar quando implementar a modulação
 
     def on_transmitir_clicked(self, button):
-        #Manipula o evento de clique no botão transmitir.
+        """Manipula o evento de clique no botão transmitir."""
         if not self.connected:
             self.adicionar_log("Erro: Não conectado ao receptor")
             return
@@ -213,26 +228,33 @@ class TransmissorGUI:
             else:  # Bipolar
                 tempo, sinal = self.mod_digital.bipolar(bits)
             
-            # Plota o sinal
+            # Atualiza o gráfico do sinal digital
             self.ax1.clear()
             self.ax1.step(tempo, sinal, where='post')
             self.ax1.set_title(f"Sinal Digital ({mod_digital})")
             self.ax1.grid(True)
-            self.fig.canvas.draw()
 
-            # Aplica a modulação portadora
+            # Aplica a modulação da portadora
             if mod_portadora == "ASK":
-                tempo, sinal = self.mod_portadora.ask(bits)
+                tempo_carrier, sinal_carrier = self.mod_portadora.ask(bits)
             elif mod_portadora == "FSK":
-                tempo, sinal = self.mod_portadora.fsk(bits)
-            else:   # 8QAM
-                tempo, sinal = self.mod_portadora.qam8(bits)
+                tempo_carrier, sinal_carrier = self.mod_portadora.fsk(bits)
+            else:  # 8-QAM
+                tempo_carrier, sinal_carrier = self.mod_portadora.qam8(bits)
             
+            # Atualiza o gráfico da portadora
+            self.ax2.clear()
+            self.ax2.step(tempo_carrier, sinal_carrier, where='post')
+            self.ax2.set_title(f"Sinal da Portadora ({mod_portadora})")
+            self.ax2.grid(True)
 
+            # Redesenha o canvas
+            self.fig.canvas.draw()
             self.adicionar_log(f"Dados transmitidos usando {mod_digital} e {mod_portadora}")
             
         except Exception as e:
             self.adicionar_log(f"Erro na transmissão: {str(e)}")
+
 
     """def on_transmitir_clicked(self, button):
         #Manipula o evento de clique no botão transmitir
@@ -273,7 +295,7 @@ class TransmissorGUI:
             
         except Exception as e:
             self.adicionar_log(f"Erro na transmissão: {str(e)}")
-
+    """
 
     def iniciar(self):
         """Inicia a interface gráfica."""

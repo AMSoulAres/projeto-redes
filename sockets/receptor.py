@@ -61,34 +61,50 @@ class ReceptorGUI:
         self.main_box.pack_start(frame, False, False, 0)
 
     def criar_area_recebidos(self):
-        """Cria área para exibição dos dados recebidos."""
-        frame = Gtk.Frame(label="Dados Recebidos")
+        """Cria área para entrada de dados."""
+        frame = Gtk.Frame(label="Entrada de Dados")
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        frame.add(box)
+
+        self.entrada_texto = Gtk.TextView() 
+        self.entrada_texto.set_wrap_mode(Gtk.WrapMode.WORD)
         scroll = Gtk.ScrolledWindow()
-        frame.add(scroll)
+        scroll.set_min_content_height(50)  # Altura mínima da entrada de dados
+        scroll.set_size_request(-1, 100)   # Ajusta o tamanho inicial
+        scroll.add(self.entrada_texto)
+        box.pack_start(scroll, True, True, 0)
 
-        self.text_received = Gtk.TextView()
-        self.text_received.set_editable(False)
-        self.text_received.set_wrap_mode(Gtk.WrapMode.WORD)
-        scroll.add(self.text_received)
+        bbox = Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL)
+        bbox.set_layout(Gtk.ButtonBoxStyle.END)
 
-        self.main_box.pack_start(frame, True, True, 0)
+        box.pack_start(bbox, False, False, 0)
+        frame.set_vexpand(False)  # Entrada de dados não cresce verticalmente
+        self.main_box.pack_start(frame, False, False, 0)
 
     def criar_area_visualizacao(self):
         """Cria área para visualização dos sinais."""
         frame = Gtk.Frame(label="Visualização")
-        self.fig, (self.ax1, self.ax2) = plt.subplots(2, 1, figsize=(8, 6))
         
+        # Ajusta a figura para ter dois subplots lado a lado
+        self.fig, (self.ax1, self.ax2) = plt.subplots(1, 2, figsize=(12, 6))  # 1 linha, 2 colunas
         self.ax1.set_title("Sinal Digital Recebido")
-        self.ax2.set_title("Sinal Modulado Recebido")
+        self.ax2.set_title("Sinal da Portadora Recebido")
         
+        self.ax1.grid(True)
+        self.ax2.grid(True)
+        
+        # Adiciona o canvas para exibir os gráficos na interface GTK
         canvas = FigureCanvas(self.fig)
         frame.add(canvas)
+        
         self.main_box.pack_start(frame, True, True, 0)
 
     def criar_area_log(self):
         """Cria área para exibição de logs."""
         frame = Gtk.Frame(label="Log")
         scroll = Gtk.ScrolledWindow()
+        scroll.set_min_content_height(50)  # Altura mínima do log
+        scroll.set_size_request(-1, 100)   # Ajusta o tamanho inicial
         frame.add(scroll)
 
         self.text_log = Gtk.TextView()
@@ -96,7 +112,8 @@ class ReceptorGUI:
         self.text_log.set_wrap_mode(Gtk.WrapMode.WORD)
         scroll.add(self.text_log)
 
-        self.main_box.pack_start(frame, True, True, 0)
+        frame.set_vexpand(False)  # Log não cresce verticalmente
+        self.main_box.pack_start(frame, False, False, 0)
 
     def adicionar_log(self, mensagem: str):
         """Adiciona mensagem ao log."""
@@ -168,7 +185,7 @@ class ReceptorGUI:
             self.ax2.clear()
             
             # Plota sinal digital
-            self.ax1.step(t, bits, where='post')
+            self.ax1.step(t, bits)
             self.ax1.set_title(f"Sinal Digital Recebido ({mod_digital})")
             self.ax1.grid(True)
             
