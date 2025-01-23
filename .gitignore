@@ -1,2 +1,4 @@
 socket/venv/
 venv/
+.venv
+socket/.venv

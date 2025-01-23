@@ -61,25 +61,18 @@ class ReceptorGUI:
         self.main_box.pack_start(frame, False, False, 0)
 
     def criar_area_recebidos(self):
-        """Cria área para entrada de dados."""
-        frame = Gtk.Frame(label="Entrada de Dados")
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        frame.add(box)
-
-        self.entrada_texto = Gtk.TextView() 
-        self.entrada_texto.set_wrap_mode(Gtk.WrapMode.WORD)
+        """Cria área para exibição dos dados recebidos."""
+        frame = Gtk.Frame(label="Dados Recebidos")
         scroll = Gtk.ScrolledWindow()
-        scroll.set_min_content_height(50)  # Altura mínima da entrada de dados
-        scroll.set_size_request(-1, 100)   # Ajusta o tamanho inicial
-        scroll.add(self.entrada_texto)
-        box.pack_start(scroll, True, True, 0)
+        frame.add(scroll)
 
-        bbox = Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL)
-        bbox.set_layout(Gtk.ButtonBoxStyle.END)
+        self.text_received = Gtk.TextView()
+        self.text_received.set_editable(False)
+        self.text_received.set_wrap_mode(Gtk.WrapMode.WORD)
+        scroll.add(self.text_received)
 
-        box.pack_start(bbox, False, False, 0)
-        frame.set_vexpand(False)  # Entrada de dados não cresce verticalmente
-        self.main_box.pack_start(frame, False, False, 0)
+        self.main_box.pack_start(frame, True, True, 0)
+
 
     def criar_area_visualizacao(self):
         """Cria área para visualização dos sinais."""
