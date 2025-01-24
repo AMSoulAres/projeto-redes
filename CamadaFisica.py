@@ -7,6 +7,8 @@ class ModulacaoDigital:
         self.amplitude = amplitude
 
     def nrz_polar(self, bits):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Calcula o vetor de tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
         # Inicializa o vetor de sinais
@@ -15,6 +17,8 @@ class ModulacaoDigital:
         return tempo, sinal_modulado
 
     def manchester(self, bits):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Calcula o vetor de tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
         
@@ -35,6 +39,8 @@ class ModulacaoDigital:
         return tempo, sinal_modulado
         
     def bipolar(self, bits):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Calcula o vetor de tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
 
@@ -96,6 +102,8 @@ class ModulacaoPortadora:
         self.amplitude = amplitude
 
     def ask(self, bits, freq_portadora=1):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Calcula o vetor do tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
 
@@ -117,6 +125,8 @@ class ModulacaoPortadora:
         return tempo, sinal_modulado
 
     def fsk(self, bits, freq_low=1, freq_high=2):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Calcula o vetor do tempo
         tempo = np.linspace(0, len(bits), len(bits) * self.taxa_amostragem)
 
@@ -138,6 +148,8 @@ class ModulacaoPortadora:
         return tempo, sinal
 
     def qam8(self, bits):
+        # Prepara os bits para processamento
+        bits = prepara(bits)
         # Faz uma cópia dos bits para não modificar a entrada original
         bits_padded = bits.copy()
         
@@ -272,6 +284,16 @@ class ModulacaoPortadora:
         return bits
 
 
+def prepara(quadros):
+        # Inicializa o vetor de bits
+        bits = []
+
+        # Quebra o quadro em bits por bits (inteiros)
+        for quadro in quadros:
+            for bit in quadro:
+                bits.append(int(bit))
+
+        return bits
 
 
 """

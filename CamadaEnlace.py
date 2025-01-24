@@ -102,6 +102,7 @@ class CamadaEnlace:
 
     # Recepção
     def desenquadrar_contagem(self, quadros):
+        #quadros = prepara(quadros)
         dados = ""
         for quadro in quadros:
             # Converte os 8 primeiros bits para tamanho do payload em bytes
@@ -132,8 +133,8 @@ class CamadaEnlace:
                     payload = payload[:-1]
             
             dados += payload
-        
-        return dados
+        print(f"bbbbb {dados}")
+        return dados'
 
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
         """ Desenquadra os dados utilizando inserção de flags """
@@ -206,6 +207,15 @@ class CamadaEnlace:
                 dados_recuperados.append(bits[i - 1])
         
         return ''.join(map(str, dados_recuperados))
+
+def prepara(bits):
+    """ Converte um array de bits (int) em quadros (strings) para a camada de enlace """
+    # Converte a lista de bits em uma única string
+    quadros = ''.join(map(str, bits))
+    
+    # Quebra a string em quadros com tamanho fixo 
+    return quadros
+
 
 # Exemplo de uso
 if __name__ == "__main__":

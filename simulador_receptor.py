@@ -56,7 +56,7 @@ class SimuladorReceptor:
 
             # Desenquadramento dos dados
             bits_recebidos = self.camada_enlace.desenquadrar_contagem(quadros)
-
+    
             return True, (texto, mod_digital, mod_portadora, bits_recebidos)
         except Exception as e:
             return False, f"Erro ao receber dados: {str(e)}"

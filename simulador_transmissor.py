@@ -38,19 +38,19 @@ class Simulador:
 
             # Aplica modulação digital selecionada
             if mod_digital == "NRZ-Polar":
-                tempo, sinal = self.mod_digital.nrz_polar(bits)
+                tempo, sinal = self.mod_digital.nrz_polar(quadros)
             elif mod_digital == "Manchester":
-                tempo, sinal = self.mod_digital.manchester(bits)
+                tempo, sinal = self.mod_digital.manchester(quadros)
             else:  # Bipolar
-                tempo, sinal = self.mod_digital.bipolar(bits)
+                tempo, sinal = self.mod_digital.bipolar(quadros)
 
             # Aplica a modulação da portadora
             if mod_portadora == "ASK":
-                tempo_carrier, sinal_carrier = self.mod_portadora.ask(bits)
+                tempo_carrier, sinal_carrier = self.mod_portadora.ask(quadros)
             elif mod_portadora == "FSK":
-                tempo_carrier, sinal_carrier = self.mod_portadora.fsk(bits)
+                tempo_carrier, sinal_carrier = self.mod_portadora.fsk(quadros)
             else:  # 8-QAM
-                tempo_carrier, sinal_carrier = self.mod_portadora.qam8(bits)
+                tempo_carrier, sinal_carrier = self.mod_portadora.qam8(quadros)
 
             # Prepara os dados para transmissão
             dados = {
