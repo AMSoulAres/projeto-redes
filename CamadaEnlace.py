@@ -102,17 +102,25 @@ class CamadaEnlace:
 
     # Recepção
     def desenquadrar_contagem(self, quadros):
+        # Transforma a entrada em uma única string
         quadros = prepara(quadros)
         dados = ""
-        for quadro in quadros:
-            # Converte os 8 primeiros bits para tamanho do payload em bytes
-            tamanho_bytes = int(quadro[:8], 2)
+        
+        # Processa a string completa como um único quadro, ou divide em blocos de quadros
+        while len(quadros) > 8:  # Garantimos que há pelo menos 8 bits para o tamanho do payload
+            # Converte os 8 primeiros bits para o tamanho do payload em bytes
+            tamanho_bytes = int(quadros[:8], 2)
             
             # Calcula o tamanho em bits (8 bits por byte)
             tamanho_bits = tamanho_bytes * 8
             
+            # Verifica se o quadro tem tamanho suficiente
+            if len(quadros) < 8 + tamanho_bits:
+                raise ValueError("O quadro está incompleto ou corrompido.")
+            
             # Extrai o payload completo
-            payload = quadro[8:8 + tamanho_bits]
+            payload = quadros[8:8 + tamanho_bits]
+            quadros = quadros[8 + tamanho_bits:]  # Remove o quadro processado da string
             
             # Aplica decodificação Hamming se habilitado
             if self.hamming_enabled:
@@ -132,37 +140,55 @@ class CamadaEnlace:
                         raise ValueError("Erro detectado no quadro (Paridade inválida)")
                     payload = payload[:-1]
             
+            # Adiciona o payload decodificado aos dados finais
             dados += payload
 
         return dados
 
+
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
-        """ Desenquadra os dados utilizando inserção de flags """
+        """Desenquadra os dados utilizando inserção de flags"""
+        # Transforma a entrada em uma única string
         quadros = prepara(quadros)
         dados = ""
-        for quadro in quadros:
-            payload = quadro[len(delimitador):-len(delimitador)]
+        
+        # Divide os quadros usando o delimitador
+        quadros_split = quadros.split(delimitador)
+        
+        # Remove quadros vazios (gerados por delimitadores consecutivos)
+        quadros_split = [q for q in quadros_split if q]
+        
+        for quadro in quadros_split:
             desescaped_payload = ""
             i = 0
-            while i < len(payload):
-                byte = payload[i:i + 8]
+            
+            while i < len(quadro):
+                byte = quadro[i:i + 8]
                 if byte == escape:
+                    # Ignora o próximo byte (é um byte escapado)
                     i += 8
-                    byte = payload[i:i + 8]
+                    byte = quadro[i:i + 8]
                 desescaped_payload += byte
                 i += 8
+            
+            # Aplica decodificação Hamming se habilitado
             if self.hamming_enabled:
                 desescaped_payload = self.decodificar_hamming(desescaped_payload)
+            
+            # Verifica métodos de detecção
             for method in self.detection_methods:
                 if not method(desescaped_payload):
                     raise ValueError("Erro detectado no quadro")
             
+            # Remove o CRC-32 (últimos 32 bits) se habilitado
             if self.adicionar_crc in self.detection_methods:
-                # Remove o CRC-32 (últimos 32 bits) após a verificação
                 desescaped_payload = desescaped_payload[:-32]
             
+            # Adiciona o payload decodificado aos dados finais
             dados += desescaped_payload
+        
         return dados
+
 
     def verificar_paridade(self, dados):
         """ Verifica se o bit de paridade é válido """
