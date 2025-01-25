@@ -64,7 +64,7 @@ class ModulacaoDigital:
     
     def nrz_polar_decode(self, sinal):
         # Decodifica o sinal do padrão NRZ Polar
-        bits = [-1 if componente < 0 else 0 for componente in sinal]
+        bits = [0 if componente < 0 else 1 for componente in sinal]
 
         return bits
 
