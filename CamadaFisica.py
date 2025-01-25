@@ -74,8 +74,12 @@ class ModulacaoDigital:
 
         tamanho_sinal = len(sinal)
 
+        # Verifica se o tamanho do sinal é válido (deve ser par)
+        if len(sinal) % 2 != 0:
+            raise ValueError("O sinal deve ter um número par de elementos para decodificação Manchester.")
+
         # Loop com metade do tamanho da array do sinal (interagir de dois em dois)
-        for i in range(0, tamanho_sinal/2):
+        for i in range(0, tamanho_sinal, 2):
             if sinal[i] == -self.amplitude and sinal[i+1] == self.amplitude:  # Essa função depende de como vamos implementar o receptor e transmissor
                 bits.append(0)                                                # O ideal nesse caso seria passar parametros iguais para inicializacao da
             elif sinal[i] == self.amplitude and sinal[i+1] == -self.amplitude:  # classe tanto no receptor como no transmissor
@@ -448,4 +452,8 @@ mod = ModulacaoPortadora(taxa_amostragem=1000, amplitude=1)
 bits_teste = [1, 1, 0, 0, 0, 1, 1, 1, 0]
 plot_8qam_results(mod, bits_teste)
 
+receptor = ModulacaoDigital(amplitude=5)
+sinal = [-5, 5, 5, -5, -5, 5, 5, -5]  # Codificado em Manchester
+bits = receptor.manchester_decode(sinal)
+print(bits)  # Saída esperada: [0, 1, 0, 1]
 """
