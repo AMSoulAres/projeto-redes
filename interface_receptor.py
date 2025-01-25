@@ -4,6 +4,7 @@ from gi.repository import Gtk, GLib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 import threading
+import numpy as np
 from simulador_receptor import SimuladorReceptor
 
 class ReceptorGUI:
@@ -162,9 +163,9 @@ class ReceptorGUI:
         while self.simulador.running:
             success, result = self.simulador.receber_dados()
             if success:
-                texto, mod_digital, mod_portadora, bits_recebidos = result
-                self.adicionar_dados_recebidos(f"Recebido:\n{texto}")
-                self.atualizar_visualizacao(texto, mod_digital, mod_portadora, bits_recebidos)
+                mensagem, mod_digital, mod_portadora, bits_recebidos = result
+                self.adicionar_dados_recebidos(f"Recebido:\n{mensagem}")
+                self.atualizar_visualizacao(mensagem, mod_digital, mod_portadora, bits_recebidos)
                 self.adicionar_log(f"Dados recebidos usando {mod_digital} e {mod_portadora}")
             else:
                 self.adicionar_log(result)

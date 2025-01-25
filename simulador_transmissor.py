@@ -7,9 +7,12 @@ class Simulador:
     def __init__(self):
         self.mod_digital = ModulacaoDigital()
         self.mod_portadora = ModulacaoPortadora()
-        self.camada_enlace = CamadaEnlace(["CRC-32", "Paridade"])
+        self.camada_enlace = CamadaEnlace([])
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connected = False
+
+    def configurar_camada_enlace(self, metodos):
+        self.camada_enlace = CamadaEnlace(metodos)
 
     def conectar(self, ip, port):
         try:

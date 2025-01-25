@@ -134,7 +134,7 @@ class CamadaEnlace:
             
             dados += payload
         print(f"bbbbb {dados}")
-        return dados'
+        return dados
 
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
         """ Desenquadra os dados utilizando inserção de flags """

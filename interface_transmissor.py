@@ -93,6 +93,18 @@ class TransmissorGUI:
         self.combo_portadora.set_active(0)
         grid.attach(self.combo_portadora, 1, 1, 1, 1)
 
+        label = Gtk.Label(label="Correção de Erros:")
+        grid.attach(label, 0, 2, 1, 1)
+
+        self.check_crc32 = Gtk.CheckButton(label="CRC-32")
+        grid.attach(self.check_crc32, 1, 2, 1, 1)
+
+        self.check_paridade = Gtk.CheckButton(label="Paridade")
+        grid.attach(self.check_paridade, 1, 3, 1, 1)
+
+        self.check_hamming = Gtk.CheckButton(label="Hamming")
+        grid.attach(self.check_hamming, 1, 4, 1, 1)
+
         self.main_box.pack_start(frame, False, False, 0)
 
     def criar_area_visualizacao(self):
@@ -160,6 +172,16 @@ class TransmissorGUI:
 
         mod_digital = self.combo_modulacao.get_active_text()
         mod_portadora = self.combo_portadora.get_active_text()
+
+        metodos_correcoes = []
+        if self.check_crc32.get_active():
+            metodos_correcoes.append("CRC-32")
+        if self.check_paridade.get_active():
+            metodos_correcoes.append("Paridade")
+        if self.check_hamming.get_active():
+            metodos_correcoes.append("Hamming")
+
+        self.simulador.configurar_camada_enlace(metodos_correcoes)
 
         success, result = self.simulador.transmitir(texto, mod_digital, mod_portadora)
         if success:

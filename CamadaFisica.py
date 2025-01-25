@@ -213,7 +213,7 @@ class ModulacaoPortadora:
         bits = []
 
         for amplitude in sinal:
-            if ampltiude == 0:
+            if amplitude == 0:
                 bits.append(0)
             else:
                 bits.append(1)
