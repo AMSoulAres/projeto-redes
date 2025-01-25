@@ -102,18 +102,17 @@ class ReceptorGUI:
             self.text_received.scroll_to_mark(mark, 0.0, True, 0.0, 1.0)
         GLib.idle_add(append_text)
 
-    def atualizar_visualizacao(self, texto: str, mod_digital: str, mod_portadora: str, bits_recebidos: list):
+    def atualizar_visualizacao(self, texto: str, mod_digital: str, mod_portadora: str, bits_recebidos: list, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora):
         def update():
-            t = np.linspace(0, len(bits_recebidos), len(bits_recebidos))
             
             self.ax1.clear()
             self.ax2.clear()
-            
-            self.ax1.step(t, bits_recebidos)
+
+            self.ax1.step(tempo_sinal_digital, sinal_digital)
             self.ax1.set_title(f"Sinal Digital Recebido ({mod_digital})")
             self.ax1.grid(True)
             
-            if mod_portadora == "ASK":
+            """if mod_portadora == "ASK":
                 carrier_freq = 10
                 t_dense = np.linspace(0, len(bits_recebidos), len(bits_recebidos) * 20)
                 carrier = np.sin(2 * np.pi * carrier_freq * t_dense)
@@ -128,8 +127,8 @@ class ReceptorGUI:
             else:
                 t_dense = np.linspace(0, len(bits_recebidos), len(bits_recebidos) * 20)
                 signal = np.sin(2 * np.pi * 10 * t_dense) * np.repeat(bits_recebidos, 20)
-            
-            self.ax2.plot(t_dense, signal)
+            """
+            self.ax2.plot(tempo_sinal_portadora, sinal_portadora)
             self.ax2.set_title(f"Sinal Modulado Recebido ({mod_portadora})")
             self.ax2.grid(True)
             
@@ -163,9 +162,9 @@ class ReceptorGUI:
         while self.simulador.running:
             success, result = self.simulador.receber_dados()
             if success:
-                mensagem, mod_digital, mod_portadora, bits_recebidos = result
+                mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora = result
                 self.adicionar_dados_recebidos(f"Recebido:\n{mensagem}")
-                self.atualizar_visualizacao(mensagem, mod_digital, mod_portadora, bits_recebidos)
+                self.atualizar_visualizacao(mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
                 self.adicionar_log(f"Dados recebidos usando {mod_digital} e {mod_portadora}")
             else:
                 self.adicionar_log(result)

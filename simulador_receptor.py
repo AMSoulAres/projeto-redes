@@ -99,12 +99,12 @@ class SimuladorReceptor:
                 bits_desenquadrados = self.camada_enlace.desenquadrar_insercao(bits_recebidos)
             else:
                 raise ValueError("Enquadramento desconhecido")
-                
+
             print(f"DESENQUDARADO: {bits_desenquadrados}")
 
             # Conversão dos bits desenquadrados para ASCII
             mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
             print(mensagem)
-            return True, (mensagem, mod_digital, mod_portadora, bits_recebidos)
+            return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
         except Exception as e:
             return False, f"Erro ao receber dados: {str(e)}"

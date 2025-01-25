@@ -169,7 +169,7 @@ class ModulacaoPortadora:
 
         sinal_modulado = np.array(sinal)
 
-        return tempo, sinal
+        return tempo, sinal_modulado
 
     def qam8(self, bits):
         # Prepara os bits para processamento
