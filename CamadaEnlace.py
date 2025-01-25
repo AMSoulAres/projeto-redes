@@ -102,7 +102,7 @@ class CamadaEnlace:
 
     # Recepção
     def desenquadrar_contagem(self, quadros):
-        #quadros = prepara(quadros)
+        quadros = prepara(quadros)
         dados = ""
         for quadro in quadros:
             # Converte os 8 primeiros bits para tamanho do payload em bytes
@@ -133,11 +133,12 @@ class CamadaEnlace:
                     payload = payload[:-1]
             
             dados += payload
-        print(f"bbbbb {dados}")
+
         return dados
 
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
         """ Desenquadra os dados utilizando inserção de flags """
+        quadros = prepara(quadros)
         dados = ""
         for quadro in quadros:
             payload = quadro[len(delimitador):-len(delimitador)]

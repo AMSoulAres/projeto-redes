@@ -93,17 +93,26 @@ class TransmissorGUI:
         self.combo_portadora.set_active(0)
         grid.attach(self.combo_portadora, 1, 1, 1, 1)
 
-        label = Gtk.Label(label="Correção de Erros:")
-        grid.attach(label, 0, 2, 1, 1)
+        label = Gtk.Label(label="Enquadramento:")
+        grid.attach(label, 2, 0, 1, 1)
 
-        self.check_crc32 = Gtk.CheckButton(label="CRC-32")
-        grid.attach(self.check_crc32, 1, 2, 1, 1)
+        self.combo_enquadramento = Gtk.ComboBoxText()
+        for enq in ["Contagem de Caracteres", "Inserção de Bytes"]:
+            self.combo_enquadramento.append_text(enq)
+        self.combo_enquadramento.set_active(0)
+        grid.attach(self.combo_enquadramento, 3, 0, 1, 1)
 
-        self.check_paridade = Gtk.CheckButton(label="Paridade")
-        grid.attach(self.check_paridade, 1, 3, 1, 1)
+        label = Gtk.Label(label="Detecção de Erros:")
+        grid.attach(label, 2, 1, 1, 1)
 
-        self.check_hamming = Gtk.CheckButton(label="Hamming")
-        grid.attach(self.check_hamming, 1, 4, 1, 1)
+        self.combo_deteccao = Gtk.ComboBoxText()
+        for enq in ["Bit de paridade par", "CRC-32"]:
+            self.combo_deteccao.append_text(enq)
+        self.combo_deteccao.set_active(0)
+        grid.attach(self.combo_deteccao, 3, 1, 1, 1)
+
+        self.check_correcao = Gtk.CheckButton(label="Hamming")
+        grid.attach(self.check_correcao, 4, 0, 1, 1)
 
         self.main_box.pack_start(frame, False, False, 0)
 
@@ -172,18 +181,18 @@ class TransmissorGUI:
 
         mod_digital = self.combo_modulacao.get_active_text()
         mod_portadora = self.combo_portadora.get_active_text()
+        enquadramento = self.combo_enquadramento.get_active_text()
+        deteccao = self.combo_deteccao.get_active_text()
 
-        metodos_correcoes = []
-        if self.check_crc32.get_active():
-            metodos_correcoes.append("CRC-32")
-        if self.check_paridade.get_active():
-            metodos_correcoes.append("Paridade")
-        if self.check_hamming.get_active():
-            metodos_correcoes.append("Hamming")
+        metodos = [deteccao]
+        correcao = False
+        if self.check_correcao.get_active():
+            correcao = True
+            metodos.append("Hamming")
 
-        self.simulador.configurar_camada_enlace(metodos_correcoes)
+        self.simulador.configurar_camada_enlace(metodos)
 
-        success, result = self.simulador.transmitir(texto, mod_digital, mod_portadora)
+        success, result = self.simulador.transmitir(texto, mod_digital, mod_portadora, enquadramento, deteccao, correcao)
         if success:
             tempo, sinal, tempo_carrier, sinal_carrier = result
 

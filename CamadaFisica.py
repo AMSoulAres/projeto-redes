@@ -14,6 +14,7 @@ class ModulacaoDigital:
         # Inicializa o vetor de sinais
         sinal = np.repeat(bits, self.taxa_amostragem)
         sinal_modulado = np.where(sinal == 1, self.amplitude, -self.amplitude)
+        
         return tempo, sinal_modulado
 
     def manchester(self, bits):
@@ -62,41 +63,60 @@ class ModulacaoDigital:
         
         return tempo, sinal_modulado
     
-    def nrz_polar_decode(self, sinal):
+    def nrz_polar_decode(self, sinal_modulado):
         # Decodifica o sinal do padrão NRZ Polar
-        bits = [0 if componente < 0 else 1 for componente in sinal]
-
-        return bits
-
-    def manchester_decode(self, sinal):
-        # Inicializa o vetor de bits
+        num_bits = len(sinal_modulado) // self.taxa_amostragem
+    
+        # Inicializa o vetor para armazenar os bits decodificados
         bits = []
-
-        tamanho_sinal = len(sinal)
-
-        # Verifica se o tamanho do sinal é válido (deve ser par)
-        if len(sinal) % 2 != 0:
-            raise ValueError("O sinal deve ter um número par de elementos para decodificação Manchester.")
-
-        # Loop com metade do tamanho da array do sinal (interagir de dois em dois)
-        for i in range(0, tamanho_sinal, 2):
-            if sinal[i] == -self.amplitude and sinal[i+1] == self.amplitude:  # Essa função depende de como vamos implementar o receptor e transmissor
-                bits.append(0)                                                # O ideal nesse caso seria passar parametros iguais para inicializacao da
-            elif sinal[i] == self.amplitude and sinal[i+1] == -self.amplitude:  # classe tanto no receptor como no transmissor
-                bits.append(1)
-
-        return bits
-
-    def bipolar_decode(self, sinal):
-        # Inicializa o vetor de bits
-        bits = []
-
-        for amplitude in sinal:
-            if amplitude == 0: 
-                bits.append(0)
-            else:               # Tanto negativo quanto positivo equivalem ao bit 1
-                bits.append(1)
         
+        # Percorre os blocos do sinal modulado e pega o primeiro valor de cada bloco
+        for i in range(num_bits):
+            bloco_inicio = i * self.taxa_amostragem
+            bloco_fim = bloco_inicio + self.taxa_amostragem
+            
+            # Pega o primeiro valor do bloco (representa o bit original)
+            valor = sinal_modulado[bloco_inicio]
+            
+            # Converte o valor de volta para bit (1 ou -1)
+            bits.append(1 if valor == self.amplitude else 0)
+        
+        return bits
+
+    def manchester_decode(self, sinal_modulado):
+        if len(sinal_modulado) % self.taxa_amostragem != 0:
+            raise ValueError("O sinal modulado deve ter um número de amostras consistente com a taxa de amostragem.")
+        
+        bits = []
+        tamanho_bloco = self.taxa_amostragem // 2
+
+        for i in range(0, len(sinal_modulado), self.taxa_amostragem):
+            primeiro_meio = sinal_modulado[i:i + tamanho_bloco]
+            segundo_meio = sinal_modulado[i + tamanho_bloco:i + self.taxa_amostragem]
+            
+            if np.all(primeiro_meio == self.amplitude) and np.all(segundo_meio == -self.amplitude):
+                bits.append(1)
+            elif np.all(primeiro_meio == -self.amplitude) and np.all(segundo_meio == self.amplitude):
+                bits.append(0)
+            else:
+                raise ValueError("Sinal modulado inconsistente para decodificação Manchester.")
+
+        return bits
+
+    def bipolar_decode(self, sinal_modulado):
+        num_bits = len(sinal_modulado) // self.taxa_amostragem
+        bits = []
+
+        for i in range(num_bits):
+            bloco_inicio = i * self.taxa_amostragem
+            bloco = sinal_modulado[bloco_inicio:bloco_inicio + self.taxa_amostragem]
+            valor = bloco[0]
+
+            if valor == 0:
+                bits.append(0)
+            else:
+                bits.append(1)
+
         return bits
 
 
@@ -457,3 +477,24 @@ sinal = [-5, 5, 5, -5, -5, 5, 5, -5]  # Codificado em Manchester
 bits = receptor.manchester_decode(sinal)
 print(bits)  # Saída esperada: [0, 1, 0, 1]
 """
+
+# Teste das funções
+mod = ModulacaoDigital(amplitude=1, taxa_amostragem=10)
+
+# Teste NRZ-Polar
+bits = ["10110"]
+tempo, sinal_nrz = mod.nrz_polar(bits)
+bits_decodificados_nrz = mod.nrz_polar_decode(sinal_nrz)
+assert [1, 0, 1, 1, 0] == bits_decodificados_nrz, "Erro na decodificação NRZ-Polar"
+
+# Teste Manchester
+tempo, sinal_manchester = mod.manchester(bits)
+bits_decodificados_manchester = mod.manchester_decode(sinal_manchester)
+assert [1, 0, 1, 1, 0] == bits_decodificados_manchester, "Erro na decodificação Manchester"
+
+# Teste Bipolar
+tempo, sinal_bipolar = mod.bipolar(bits)
+bits_decodificados_bipolar = mod.bipolar_decode(sinal_bipolar)
+assert [1, 0, 1, 1, 0] == bits_decodificados_bipolar, "Erro na decodificação Bipolar"
+
+print("Todos os testes passaram!")

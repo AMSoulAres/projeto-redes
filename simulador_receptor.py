@@ -1,5 +1,7 @@
 import socket
 import json
+import struct
+import numpy as np
 from CamadaFisica import ModulacaoDigital, ModulacaoPortadora
 from CamadaEnlace import CamadaEnlace
 
@@ -44,39 +46,61 @@ class SimuladorReceptor:
 
     def receber_dados(self):
         try:
-            data = self.client_socket.recv(4096)
-            if not data:
+            tamanho = struct.unpack('!I', self.client_socket.recv(4))[0]
+            dados_json = b''
+            while len(dados_json) < tamanho:
+                chunk = self.client_socket.recv(min(4096, tamanho - len(dados_json)))
+                if not chunk:
+                    break
+                dados_json += chunk
+
+            if not dados_json:
                 return False, "Conexão encerrada pelo cliente"
             
-            dados = json.loads(data.decode('utf-8'))
-            texto = dados['texto']
+            dados = json.loads(dados_json.decode('utf-8'))
+            enquadramento = dados['enquadramento']
+            deteccao = dados['deteccao']
+            correcao = dados['correcao']
             mod_digital = dados['modulacao_digital']
             mod_portadora = dados['modulacao_portadora']
-            quadros = dados['quadros']
+            sinal_digital = np.array(dados['sinal_digital'])
+            tempo_sinal_digital = np.array(dados['tempo_sinal_digital'])
+            sinal_portadora = np.array(dados['sinal_portadora'])
+            tempo_sinal_portadora = np.array(dados['tempo_sinal_portadora'])
 
             # Decodificação da modulação da portadora
             if mod_portadora == "ASK":
-                bits_modulados = self.mod_portadora.ask_decode(quadros)
+                bits_portadora = self.mod_portadora.ask_decode(sinal_portadora)
             elif mod_portadora == "FSK":
-                bits_modulados = self.mod_portadora.fsk_decode(quadros)
-            else:  # 8-QAM
-                bits_modulados = self.mod_portadora.qam8_decode(quadros)
+                bits_portadora = self.mod_portadora.fsk_decode(sinal_portadora)
+            elif mod_portadora == "8-QAM":
+                bits_portadora = self.mod_portadora.qam8_decode(sinal_portadora)
+            else:
+                raise ValueError("Modulação desconhecida")
 
-            print(bits_modulados)
+            print(f"PORTADORA : {bits_portadora}")
 
             # Decodificação da modulação digital
             if mod_digital == "NRZ-Polar":
-                bits_recebidos = self.mod_digital.nrz_polar_decode(bits_modulados)
+                bits_recebidos = self.mod_digital.nrz_polar_decode(sinal_digital)
             elif mod_digital == "Manchester":
-                bits_recebidos = self.mod_digital.manchester_decode(bits_modulados)
-            else:  # Bipolar
-                bits_recebidos = self.mod_digital.bipolar_decode(bits_modulados)
+                bits_recebidos = self.mod_digital.manchester_decode(sinal_digital)
+            elif mod_digital == "Bipolar":
+                bits_recebidos = self.mod_digital.bipolar_decode(sinal_digital)
+            else:
+                raise ValueError("Modulação desconhecida")
             
-            print(bits_recebidos)
+            print(f"DIGITAL: {bits_recebidos}")
 
             # Desenquadramento dos dados
-            bits_desenquadrados = self.camada_enlace.desenquadrar_contagem(bits_recebidos)
-            print(bits_desenquadrados)
+            if enquadramento == "Contagem de Caracteres":
+                bits_desenquadrados = self.camada_enlace.desenquadrar_contagem(bits_recebidos)
+            elif enquadramento == "Inserção de Bytes":
+                bits_desenquadrados = self.camada_enlace.desenquadrar_insercao(bits_recebidos)
+            else:
+                raise ValueError("Enquadramento desconhecido")
+                
+            print(f"DESENQUDARADO: {bits_desenquadrados}")
 
             # Conversão dos bits desenquadrados para ASCII
             mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
