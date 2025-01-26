@@ -1,3 +1,4 @@
+import random
 import socket
 import json
 import struct
@@ -33,13 +34,18 @@ class Simulador:
             return False, f"Erro ao desconectar: {str(e)}"
         
     def simular_erro(self, quadros: list[str]):
-        print(quadros)
-        bit = quadros[0][0].split('')[0]
-        print(bit)
-        bit = '1' if bit == '0' else '0'
-        print(bit)
-        quadros[0] = bit + quadros[0][1:]
-        print(quadros)
+        chance_de_erro = 0.01 / 100  # 0.01%
+        quadros_alterados = []
+        erro = False
+        for quadro in quadros:
+            quadro_alterado = list(quadro)
+            for i in range(len(quadro_alterado)):
+                if random.random() < chance_de_erro:
+                    erro = True
+                    quadro_alterado[i] = '1' if quadro_alterado[i] == '0' else '0'
+            quadros_alterados.append(''.join(quadro_alterado))
+
+        return quadros_alterados, erro
 
     def transmitir(self, texto, mod_digital, mod_portadora, enquadramento, deteccao, correcao):
         try:
@@ -58,7 +64,6 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de enquadramento deve ser selecionada.")
             
-            print('antes da modulação')
             
             # Enquadramento dos dados com chance de erro
             if enquadramento == "Contagem de Caracteres":
@@ -67,8 +72,6 @@ class Simulador:
                 quadros_erro = self.camada_enlace.enquadrar_insercao(bits, 16)
             else:
                 raise ValueError("Uma forma de enquadramento deve ser selecionada.")
-            
-            print('antes da modulação difital')
 
             # Aplica modulação digital selecionada
             if mod_digital == "NRZ-Polar":
@@ -80,21 +83,17 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
             
-            print('antes da modulação da portadora')    
-            print(quadros)
             # Aplica a modulação da portadora
             if mod_portadora == "ASK":
                 tempo_carrier, sinal_carrier = self.mod_portadora.ask(quadros)
-                print('ASK')
             elif mod_portadora == "FSK":
                 tempo_carrier, sinal_carrier = self.mod_portadora.fsk(quadros)
             elif mod_portadora == "8-QAM":
                 tempo_carrier, sinal_carrier = self.mod_portadora.qam8(quadros)
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
-            
             # Simular erro no pacote
-            quadros_erro = self.simular_erro(quadros)
+            quadros_erro, contem_erro = self.simular_erro(quadros)
             
             # Aplica modulação digital selecionada em quadro com chance de erro
             if mod_digital == "NRZ-Polar":
@@ -130,7 +129,8 @@ class Simulador:
                 'sinal_digital_erro': sinal_erro.tolist(),
                 'tempo_sinal_digital_erro': tempo_erro.tolist(),
                 'sinal_portadora_erro': sinal_erro_carrier.tolist(),
-                'tempo_sinal_portadora_erro': tempo_erro_carrier.tolist()
+                'tempo_sinal_portadora_erro': tempo_erro_carrier.tolist(),
+                'contem_erro': contem_erro
             }
 
             # Envia os dados
