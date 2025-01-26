@@ -1,3 +1,4 @@
+import random
 import socket
 import json
 import struct
@@ -33,10 +34,18 @@ class Simulador:
             return False, f"Erro ao desconectar: {str(e)}"
         
     def simular_erro(self, quadros: list[str]):
-        bit = quadros[0][0].split()[0]
-        bit = '1' if bit == '0' else '0'
-        quadros[0] = bit + quadros[0][1:]
-        return quadros
+        chance_de_erro = 0.01 / 100  # 0.01%
+        quadros_alterados = []
+        erro = False
+        for quadro in quadros:
+            quadro_alterado = list(quadro)
+            for i in range(len(quadro_alterado)):
+                if random.random() < chance_de_erro:
+                    erro = True
+                    quadro_alterado[i] = '1' if quadro_alterado[i] == '0' else '0'
+            quadros_alterados.append(''.join(quadro_alterado))
+
+        return quadros_alterados, erro
 
     def transmitir(self, texto, mod_digital, mod_portadora, enquadramento, deteccao, correcao):
         try:
@@ -83,11 +92,9 @@ class Simulador:
                 tempo_carrier, sinal_carrier = self.mod_portadora.qam8(quadros)
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
-            
-            print(f"ANTES DA FUNÇÃO de erro {quadros}")
+
             # Simular erro no pacote
-            quadros_erro = self.simular_erro(quadros)
-            print(f"DEPOIS DA FUNÇÃO de erro {quadros_erro}")
+            quadros_erro, contem_erro = self.simular_erro(quadros)
             
             # Aplica modulação digital selecionada em quadro com chance de erro
             if mod_digital == "NRZ-Polar":
@@ -123,7 +130,8 @@ class Simulador:
                 'sinal_digital_erro': sinal_erro.tolist(),
                 'tempo_sinal_digital_erro': tempo_erro.tolist(),
                 'sinal_portadora_erro': sinal_erro_carrier.tolist(),
-                'tempo_sinal_portadora_erro': tempo_erro_carrier.tolist()
+                'tempo_sinal_portadora_erro': tempo_erro_carrier.tolist(),
+                'contem_erro': contem_erro
             }
 
             # Envia os dados

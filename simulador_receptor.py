@@ -72,30 +72,52 @@ class SimuladorReceptor:
             tempo_sinal_digital_erro = np.array(dados['tempo_sinal_digital_erro'])
             sinal_portadora_erro = np.array(dados['sinal_portadora_erro'])
             tempo_sinal_portadora_erro = np.array(dados['tempo_sinal_portadora_erro'])
+            contem_erro = dados['contem_erro']
 
             # Configuração da camada de enlace
             self.camada_enlace.set_detection_correction(deteccao)
             self.camada_enlace.set_hamming(correcao)
 
             # Decodificação da modulação da portadora
-            if mod_portadora == "ASK":
-                bits_portadora = self.mod_portadora.ask_decode(sinal_portadora)
-            elif mod_portadora == "FSK":
-                bits_portadora = self.mod_portadora.fsk_decode(sinal_portadora)
-            elif mod_portadora == "8-QAM":
-                bits_portadora = self.mod_portadora.qam8_decode(sinal_portadora)
-            else:
-                raise ValueError("Modulação desconhecida")
+            if contem_erro:
+                if mod_portadora == "ASK":
+                    bits_portadora_erro = self.mod_portadora.ask_decode(sinal_portadora_erro)
+                elif mod_portadora == "FSK":
+                    bits_portadora_erro = self.mod_portadora.fsk_decode(sinal_portadora_erro)
+                elif mod_portadora == "8-QAM":
+                    bits_portadora_erro = self.mod_portadora.qam8_decode(sinal_portadora_erro)
+                else:
+                    raise ValueError("Modulação desconhecida")
+            else:    
+                if mod_portadora == "ASK":
+                    bits_portadora = self.mod_portadora.ask_decode(sinal_portadora)
+                elif mod_portadora == "FSK":
+                    bits_portadora = self.mod_portadora.fsk_decode(sinal_portadora)
+                elif mod_portadora == "8-QAM":
+                    bits_portadora = self.mod_portadora.qam8_decode(sinal_portadora)
+                else:
+                    raise ValueError("Modulação desconhecida")
+                
 
             # Decodificação da modulação digital
-            if mod_digital == "NRZ-Polar":
-                bits_recebidos = self.mod_digital.nrz_polar_decode(sinal_digital)
-            elif mod_digital == "Manchester":
-                bits_recebidos = self.mod_digital.manchester_decode(sinal_digital)
-            elif mod_digital == "Bipolar":
-                bits_recebidos = self.mod_digital.bipolar_decode(sinal_digital)
+            if contem_erro:
+                if mod_digital == "NRZ-Polar":
+                    bits_recebidos = self.mod_digital.nrz_polar_decode(sinal_digital_erro)
+                elif mod_digital == "Manchester":
+                    bits_recebidos = self.mod_digital.manchester_decode(sinal_digital_erro)
+                elif mod_digital == "Bipolar":
+                    bits_recebidos = self.mod_digital.bipolar_decode(sinal_digital_erro)
+                else:
+                    raise ValueError("Modulação desconhecida")
             else:
-                raise ValueError("Modulação desconhecida")
+                if mod_digital == "NRZ-Polar":
+                    bits_recebidos = self.mod_digital.nrz_polar_decode(sinal_digital)
+                elif mod_digital == "Manchester":
+                    bits_recebidos = self.mod_digital.manchester_decode(sinal_digital)
+                elif mod_digital == "Bipolar":
+                    bits_recebidos = self.mod_digital.bipolar_decode(sinal_digital)
+                else:
+                    raise ValueError("Modulação desconhecida")
 
             # Desenquadramento dos dados
             if enquadramento == "Contagem de Caracteres":
@@ -107,27 +129,34 @@ class SimuladorReceptor:
             
             # Verificação de erros
             if deteccao == "Bit de paridade par":
-                erro_detectado = True
-                erro = self.camada_enlace.verificar_paridade(bits_desenquadrados)
+                erro_detectado = self.camada_enlace.verificar_paridade(bits_desenquadrados)
             elif deteccao == "CRC-32":
-                erro_detectado = True
-                erro = self.camada_enlace.verificar_crc(bits_desenquadrados)
+                erro_detectado = self.camada_enlace.verificar_crc(bits_desenquadrados)
 
-            if correcao and deteccao != "Nenhum":
-                bits_corrigidos = self.camada_enlace.codificar_hamming(erro)
-            elif correcao and deteccao == "Nenhum":
+            if correcao:
                 bits_corrigidos = self.camada_enlace.codificar_hamming(bits_desenquadrados)
 
             if erro_detectado and not correcao:
                 # Conversão dos bits desenquadrados para ASCII
+                print('Erro detectado')
                 mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital_erro, sinal_digital_erro, tempo_sinal_portadora_erro, sinal_portadora_erro)
                 
             elif erro_detectado and correcao:
                 # Conversão dos bits desenquadrados para ASCII
+                print('Erro detectado')
+                print('Correcao aplicada')
                 mensagem = ''.join(chr(int(bits_corrigidos[i:i+8], 2)) for i in range(0, len(bits_corrigidos), 8))
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+            
+            elif correcao:
+                # Conversão dos bits desenquadrados para ASCII
+                print('Correcao aplicada')
+                mensagem = ''.join(chr(int(bits_corrigidos[i:i+8], 2)) for i in range(0, len(bits_corrigidos), 8))
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+            
             else:
+                print('Sem erro')
                 # Conversão dos bits desenquadrados para ASCII
                 mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
