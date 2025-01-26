@@ -106,7 +106,7 @@ class TransmissorGUI:
         grid.attach(label, 2, 1, 1, 1)
 
         self.combo_deteccao = Gtk.ComboBoxText()
-        for enq in ["Bit de paridade par", "CRC-32"]:
+        for enq in ["Bit de paridade par", "CRC-32", "Nenhum"]:
             self.combo_deteccao.append_text(enq)
         self.combo_deteccao.set_active(0)
         grid.attach(self.combo_deteccao, 3, 1, 1, 1)

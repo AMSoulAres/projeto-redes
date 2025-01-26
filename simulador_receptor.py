@@ -67,6 +67,15 @@ class SimuladorReceptor:
             tempo_sinal_digital = np.array(dados['tempo_sinal_digital'])
             sinal_portadora = np.array(dados['sinal_portadora'])
             tempo_sinal_portadora = np.array(dados['tempo_sinal_portadora'])
+            mod_portadora = dados['modulacao_portadora']
+            sinal_digital_erro = np.array(dados['sinal_digital_erro'])
+            tempo_sinal_digital_erro = np.array(dados['tempo_sinal_digital_erro'])
+            sinal_portadora_erro = np.array(dados['sinal_portadora_erro'])
+            tempo_sinal_portadora_erro = np.array(dados['tempo_sinal_portadora_erro'])
+
+            # Configuração da camada de enlace
+            self.camada_enlace.set_detection_correction(deteccao)
+            self.camada_enlace.set_hamming(correcao)
 
             # Decodificação da modulação da portadora
             if mod_portadora == "ASK":
@@ -78,8 +87,6 @@ class SimuladorReceptor:
             else:
                 raise ValueError("Modulação desconhecida")
 
-            print(f"PORTADORA : {bits_portadora}")
-
             # Decodificação da modulação digital
             if mod_digital == "NRZ-Polar":
                 bits_recebidos = self.mod_digital.nrz_polar_decode(sinal_digital)
@@ -89,8 +96,6 @@ class SimuladorReceptor:
                 bits_recebidos = self.mod_digital.bipolar_decode(sinal_digital)
             else:
                 raise ValueError("Modulação desconhecida")
-            
-            print(f"DIGITAL: {bits_recebidos}")
 
             # Desenquadramento dos dados
             if enquadramento == "Contagem de Caracteres":
@@ -99,12 +104,34 @@ class SimuladorReceptor:
                 bits_desenquadrados = self.camada_enlace.desenquadrar_insercao(bits_recebidos)
             else:
                 raise ValueError("Enquadramento desconhecido")
+            
+            # Verificação de erros
+            if deteccao == "Bit de paridade par":
+                erro_detectado = True
+                erro = self.camada_enlace.verificar_paridade(bits_desenquadrados)
+            elif deteccao == "CRC-32":
+                erro_detectado = True
+                erro = self.camada_enlace.verificar_crc(bits_desenquadrados)
 
-            print(f"DESENQUDARADO: {bits_desenquadrados}")
+            if correcao and deteccao != "Nenhum":
+                bits_corrigidos = self.camada_enlace.corrigir_hamming(erro)
+            elif correcao and deteccao == "Nenhum":
+                bits_corrigidos = self.camada_enlace.corrigir_hamming(bits_desenquadrados)
 
-            # Conversão dos bits desenquadrados para ASCII
-            mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
-            print(mensagem)
-            return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+            if erro_detectado and not correcao:
+                # Conversão dos bits desenquadrados para ASCII
+                mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital_erro, sinal_digital_erro, tempo_sinal_portadora_erro, sinal_portadora_erro)
+                
+            elif erro_detectado and correcao:
+                # Conversão dos bits desenquadrados para ASCII
+                mensagem = ''.join(chr(int(bits_corrigidos[i:i+8], 2)) for i in range(0, len(bits_corrigidos), 8))
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+            else:
+                # Conversão dos bits desenquadrados para ASCII
+                mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+
+
         except Exception as e:
             return False, f"Erro ao receber dados: {str(e)}"

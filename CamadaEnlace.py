@@ -14,6 +14,18 @@ class CamadaEnlace:
                 self.detection_size += 32
         self.hamming_enabled = "Hamming" in detection_correction
 
+    def set_hamming(self, enabled):
+        self.hamming_enabled = enabled
+    
+    def set_detection_correction(self, methods):
+        for method in methods:
+            if method == "Paridade":
+                self.detection_methods.append(self.adicionar_paridade)
+                self.detection_size += 8
+            elif method == "CRC-32":
+                self.detection_methods.append(self.adicionar_crc)
+                self.detection_size += 32
+
     # Transmissão
     def enquadrar_contagem(self, dados, tamanho_maximo):
         """ Realiza enquadramento utilizando contagem de bytes """
@@ -21,18 +33,14 @@ class CamadaEnlace:
         while dados:
             payload = dados[:tamanho_maximo]
             dados = dados[tamanho_maximo:]
-            print("Payload original:", payload)
             for method in self.detection_methods:
                 payload = method(payload)
-                print("Após método de detecção:", payload)
             if self.hamming_enabled:
                 payload = self.codificar_hamming(payload)
-                print("Após Hamming:", payload)
             
             # Calcula o tamanho do payload em bytes (arredondando para cima)
             tamanho_bytes = (len(payload) + 7) // 8  # Arredonda para cima
             quadro = f"{tamanho_bytes:08b}" + payload
-            print("Quadro final:", quadro)
             quadros.append(quadro)
         return quadros
 
