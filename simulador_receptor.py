@@ -114,9 +114,9 @@ class SimuladorReceptor:
                 erro = self.camada_enlace.verificar_crc(bits_desenquadrados)
 
             if correcao and deteccao != "Nenhum":
-                bits_corrigidos = self.camada_enlace.corrigir_hamming(erro)
+                bits_corrigidos = self.camada_enlace.codificar_hamming(erro)
             elif correcao and deteccao == "Nenhum":
-                bits_corrigidos = self.camada_enlace.corrigir_hamming(bits_desenquadrados)
+                bits_corrigidos = self.camada_enlace.codificar_hamming(bits_desenquadrados)
 
             if erro_detectado and not correcao:
                 # Conversão dos bits desenquadrados para ASCII

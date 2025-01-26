@@ -33,13 +33,10 @@ class Simulador:
             return False, f"Erro ao desconectar: {str(e)}"
         
     def simular_erro(self, quadros: list[str]):
-        print(quadros)
-        bit = quadros[0][0].split('')[0]
-        print(bit)
+        bit = quadros[0][0].split()[0]
         bit = '1' if bit == '0' else '0'
-        print(bit)
         quadros[0] = bit + quadros[0][1:]
-        print(quadros)
+        return quadros
 
     def transmitir(self, texto, mod_digital, mod_portadora, enquadramento, deteccao, correcao):
         try:
@@ -58,7 +55,6 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de enquadramento deve ser selecionada.")
             
-            print('antes da modulação')
             
             # Enquadramento dos dados com chance de erro
             if enquadramento == "Contagem de Caracteres":
@@ -67,8 +63,6 @@ class Simulador:
                 quadros_erro = self.camada_enlace.enquadrar_insercao(bits, 16)
             else:
                 raise ValueError("Uma forma de enquadramento deve ser selecionada.")
-            
-            print('antes da modulação difital')
 
             # Aplica modulação digital selecionada
             if mod_digital == "NRZ-Polar":
@@ -80,12 +74,9 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
             
-            print('antes da modulação da portadora')    
-            print(quadros)
             # Aplica a modulação da portadora
             if mod_portadora == "ASK":
                 tempo_carrier, sinal_carrier = self.mod_portadora.ask(quadros)
-                print('ASK')
             elif mod_portadora == "FSK":
                 tempo_carrier, sinal_carrier = self.mod_portadora.fsk(quadros)
             elif mod_portadora == "8-QAM":
@@ -93,9 +84,10 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
             
-            print("ANTES DA FUNÇÃO " + quadros)
+            print(f"ANTES DA FUNÇÃO de erro {quadros}")
             # Simular erro no pacote
             quadros_erro = self.simular_erro(quadros)
+            print(f"DEPOIS DA FUNÇÃO de erro {quadros_erro}")
             
             # Aplica modulação digital selecionada em quadro com chance de erro
             if mod_digital == "NRZ-Polar":
