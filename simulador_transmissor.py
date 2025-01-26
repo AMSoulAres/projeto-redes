@@ -93,7 +93,6 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de modulação digital deve ser selecionada.")
             
-            print("ANTES DA FUNÇÃO " + quadros)
             # Simular erro no pacote
             quadros_erro = self.simular_erro(quadros)
             
