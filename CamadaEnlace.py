@@ -70,10 +70,12 @@ class CamadaEnlace:
         return dados + str(paridade)
 
     def adicionar_crc(self, dados):
-        """ Adiciona CRC-32 ao final dos dados """
-        crc = binascii.crc32(bitarray(dados).tobytes()) & 0xFFFFFFFF
-        crc_bits = f"{crc:032b}"
-        return dados + crc_bits
+        bits = bitarray(dados)
+        # Padding para múltiplo de 8
+        padding = (8 - (len(bits) % 8)) % 8
+        bits.extend([0] * padding)
+        crc = binascii.crc32(bits.tobytes()) & 0xFFFFFFFF
+        return dados + f"{crc:032b}"
 
     def codificar_hamming(self, dados):
         """ Adiciona bits de Hamming para correção de erros """
@@ -110,49 +112,15 @@ class CamadaEnlace:
 
     # Recepção
     def desenquadrar_contagem(self, quadros):
-        # Transforma a entrada em uma única string
         quadros = prepara(quadros)
         dados = ""
-        
-        # Processa a string completa como um único quadro, ou divide em blocos de quadros
-        while len(quadros) > 8:  # Garantimos que há pelo menos 8 bits para o tamanho do payload
-            # Converte os 8 primeiros bits para o tamanho do payload em bytes
+        while len(quadros) > 8:
             tamanho_bytes = int(quadros[:8], 2)
-            
-            # Calcula o tamanho em bits (8 bits por byte)
             tamanho_bits = tamanho_bytes * 8
-            
-            # Verifica se o quadro tem tamanho suficiente
-            if len(quadros) < 8 + tamanho_bits:
-                raise ValueError("O quadro está incompleto ou corrompido.")
-            
-            # Extrai o payload completo
             payload = quadros[8:8 + tamanho_bits]
-            quadros = quadros[8 + tamanho_bits:]  # Remove o quadro processado da string
-            
-            # Aplica decodificação Hamming se habilitado
-            if self.hamming_enabled:
-                payload = self.decodificar_hamming(payload)
-                print("Após decodificar Hamming:", payload)
-            
-            # Verifica métodos de detecção
-            for method in self.detection_methods:
-                if method == self.adicionar_crc:
-                    # Remove o CRC-32 (últimos 32 bits) após a verificação
-                    if not self.verificar_crc(payload):
-                        raise ValueError("Erro detectado no quadro (CRC-32 inválido)")
-                    payload = payload[:-32]
-                elif method == self.adicionar_paridade:
-                    # Remove o bit de paridade (último bit) após a verificação
-                    if not self.verificar_paridade(payload):
-                        raise ValueError("Erro detectado no quadro (Paridade inválida)")
-                    payload = payload[:-1]
-            
-            # Adiciona o payload decodificado aos dados finais
+            quadros = quadros[8 + tamanho_bits:]
             dados += payload
-
         return dados
-
 
     def desenquadrar_insercao(self, quadros, delimitador="01111110", escape="00100011"):
         """Desenquadra os dados utilizando inserção de flags"""
@@ -187,10 +155,7 @@ class CamadaEnlace:
             for method in self.detection_methods:
                 if not method(desescaped_payload):
                     raise ValueError("Erro detectado no quadro")
-            
-            # Remove o CRC-32 (últimos 32 bits) se habilitado
-            if self.adicionar_crc in self.detection_methods:
-                desescaped_payload = desescaped_payload[:-32]
+
             
             # Adiciona o payload decodificado aos dados finais
             dados += desescaped_payload
@@ -200,18 +165,50 @@ class CamadaEnlace:
 
     def verificar_paridade(self, dados):
         """ Verifica se o bit de paridade é válido """
-        bits = bitarray(dados[:-1])
-        paridade = int(dados[-1])
-        return bits.count() % 2 == paridade
+        # Garante que o dado recebido é um string de bits
+        bits = bitarray(dados[:-1])  # Todos os bits, exceto o último
+        paridade = int(dados[-1])  # Último bit como paridade
+        # Conta os bits 1 no payload e verifica a paridade
+        return bits.count(1) % 2 == paridade
 
-    def verificar_crc(self, dados):
-        """ Verifica se o CRC-32 é válido """
-        crc_calculado = binascii.crc32(bitarray(dados[:-32]).tobytes()) & 0xFFFFFFFF
-        crc_recebido = int(dados[-32:], 2)
-        return crc_calculado == crc_recebido
+    def verificar_crc(self, dados, contagem):
+        """Verifica CRC de múltiplos quadros concatenados e retorna os payloads válidos."""
+        crc_check = True  # Inicializa o flag para CRC
+        payload_final = ""  # Para armazenar os payloads concatenados
+        
+        while len(dados) >= 48:  # Cada quadro tem 48 bits (16 bits de payload + 32 bits de CRC)
+            # Extrai o payload e o CRC do quadro
+            payload = dados[:16]  # Primeiro 16 bits são o payload
+            crc_recebido = int(dados[16:48], 2)  # Próximos 32 bits são o CRC
+            
+            # Calcula o CRC do payload
+            bits = bitarray(payload)
+            padding = (8 - (len(bits) % 8)) % 8  # Adiciona padding para múltiplos de 8 bits
+            bits.extend([0] * padding)
+            crc_calculado = binascii.crc32(bits.tobytes()) & 0xFFFFFFFF
+
+            # Verifica se o CRC é válido
+            if crc_calculado == crc_recebido:
+                payload_final += payload  # Adiciona ao resultado apenas se o CRC for válido
+            else:
+                crc_check = False  # Marca como inválido se algum CRC falhar
+
+            # Remove o quadro processado da string
+            dados = dados[48:]  # Move para o próximo quadro (48 bits por quadro)
+
+        if contagem:
+            payload_final += dados[:-32]
+        else:
+            payload_final =+ dados
+        # Retorna os dados processados
+        return crc_check, payload_final
+
+
+
+
 
     def decodificar_hamming(self, dados):
-        """ Decodifica bits de Hamming e corrige um erro """
+        """ Decodifica bits de Hamming e corrige um erro. Retorna os bits corrigidos como uma lista de inteiros. """
         # Converte dados para lista de bits
         bits = [int(x) for x in dados]
         
@@ -233,15 +230,16 @@ class CamadaEnlace:
         
         # Corrige erro apenas se estiver dentro do intervalo
         if 0 < erro <= len(bits):
-            bits[erro - 1] ^= 1
+            bits[erro - 1] ^= 1  # Inverte o bit para corrigir o erro
         
         # Recupera bits de dados originais
         dados_recuperados = []
         for i in range(1, len(bits) + 1):
-            if (i & (i - 1)) != 0:  # Não é potência de 2
+            if (i & (i - 1)) != 0:  # Ignora potências de 2 (bits de paridade)
                 dados_recuperados.append(bits[i - 1])
         
-        return ''.join(map(str, dados_recuperados))
+        return dados_recuperados
+
 
 def prepara(bits):
     """ Converte um array de bits (int) em quadros (strings) para a camada de enlace """

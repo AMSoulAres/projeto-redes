@@ -64,15 +64,6 @@ class Simulador:
             else:
                 raise ValueError("Uma forma de enquadramento deve ser selecionada.")
             
-            
-            # Enquadramento dos dados com chance de erro
-            if enquadramento == "Contagem de Caracteres":
-                quadros_erro = self.camada_enlace.enquadrar_contagem(bits, 16)
-            elif enquadramento == "Inserção de Bytes":
-                quadros_erro = self.camada_enlace.enquadrar_insercao(bits, 16)
-            else:
-                raise ValueError("Uma forma de enquadramento deve ser selecionada.")
-
             # Aplica modulação digital selecionada
             if mod_digital == "NRZ-Polar":
                 tempo, sinal = self.mod_digital.nrz_polar(quadros)
@@ -139,6 +130,7 @@ class Simulador:
             self.socket.sendall(struct.pack('!I', tamanho))  # Envia o tamanho primeiro
             self.socket.sendall(dados_json.encode('utf-8'))  # Depois envia os dados
 
+            print(f"Bits enquadrados: {quadros}")
             return True, (tempo, sinal, tempo_carrier, sinal_carrier)
         except Exception as e:
             return False, f"Erro na transmissão: {str(e)}"

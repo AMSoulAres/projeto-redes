@@ -111,23 +111,6 @@ class ReceptorGUI:
             self.ax1.step(tempo_sinal_digital, sinal_digital)
             self.ax1.set_title(f"Sinal Digital Recebido ({mod_digital})")
             self.ax1.grid(True)
-            
-            """if mod_portadora == "ASK":
-                carrier_freq = 10
-                t_dense = np.linspace(0, len(bits_recebidos), len(bits_recebidos) * 20)
-                carrier = np.sin(2 * np.pi * carrier_freq * t_dense)
-                signal = np.repeat(bits_recebidos, 20) * carrier
-            elif mod_portadora == "FSK":
-                t_dense = np.linspace(0, len(bits_recebidos), len(bits_recebidos) * 20)
-                f0, f1 = 5, 10
-                signal = np.zeros(len(t_dense))
-                for i, bit in enumerate(bits_recebidos):
-                    freq = f1 if bit else f0
-                    signal[i*20:(i+1)*20] = np.sin(2 * np.pi * freq * t_dense[i*20:(i+1)*20])
-            else:
-                t_dense = np.linspace(0, len(bits_recebidos), len(bits_recebidos) * 20)
-                signal = np.sin(2 * np.pi * 10 * t_dense) * np.repeat(bits_recebidos, 20)
-            """
             self.ax2.plot(tempo_sinal_portadora, sinal_portadora)
             self.ax2.set_title(f"Sinal Modulado Recebido ({mod_portadora})")
             self.ax2.grid(True)
@@ -168,7 +151,6 @@ class ReceptorGUI:
                 self.adicionar_log(f"Dados recebidos usando {mod_digital} e {mod_portadora}")
             else:
                 self.adicionar_log(result)
-                break
 
     def iniciar(self):
         Gtk.main()

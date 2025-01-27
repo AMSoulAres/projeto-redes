@@ -43,6 +43,9 @@ class SimuladorReceptor:
                 if self.running:
                     return False, f"Erro na conexão: {str(e)}"
                 break
+    
+    def bits_ascii(self, bits):
+        return ''.join(chr(int(bits[i:i+8], 2)) for i in range(0, len(bits), 8))
 
     def receber_dados(self):
         try:
@@ -126,41 +129,46 @@ class SimuladorReceptor:
                 bits_desenquadrados = self.camada_enlace.desenquadrar_insercao(bits_recebidos)
             else:
                 raise ValueError("Enquadramento desconhecido")
-            
+
+            print(f"Bits desenquadrados: {bits_desenquadrados}")
+
             # Verificação de erros
             if deteccao == "Bit de paridade par":
-                erro_detectado = self.camada_enlace.verificar_paridade(bits_desenquadrados)
+                sem_erro = self.camada_enlace.verificar_paridade(bits_desenquadrados)
             elif deteccao == "CRC-32":
-                erro_detectado = self.camada_enlace.verificar_crc(bits_desenquadrados)
+                sem_erro, bits_desenquadrados = self.camada_enlace.verificar_crc(bits_desenquadrados, True)
+            elif deteccao == "Nenhum":
+                sem_erro = None
 
+            print(f"payload que deveria ser gerado: {bits_desenquadrados}")
             if correcao:
-                bits_corrigidos = self.camada_enlace.codificar_hamming(bits_desenquadrados)
+                bits_corrigidos = self.camada_enlace.decodificar_hamming(bits_desenquadrados)
 
-            if erro_detectado and not correcao:
+            if not sem_erro and not correcao:
                 # Conversão dos bits desenquadrados para ASCII
-                print('Erro detectado')
-                mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
+                print(f'Erro detectado')
+                mensagem = self.bits_ascii(bits_desenquadrados)
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital_erro, sinal_digital_erro, tempo_sinal_portadora_erro, sinal_portadora_erro)
-                
-            elif erro_detectado and correcao:
+            elif not sem_erro and correcao:
                 # Conversão dos bits desenquadrados para ASCII
-                print('Erro detectado')
-                print('Correcao aplicada')
-                mensagem = ''.join(chr(int(bits_corrigidos[i:i+8], 2)) for i in range(0, len(bits_corrigidos), 8))
-                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
-            
-            elif correcao:
+                print('Erro detectado e correcao aplicada')
+                mensagem = self.bits_ascii(bits_corrigidos)
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)          
+            elif sem_erro and correcao:
                 # Conversão dos bits desenquadrados para ASCII
-                print('Correcao aplicada')
-                mensagem = ''.join(chr(int(bits_corrigidos[i:i+8], 2)) for i in range(0, len(bits_corrigidos), 8))
+                print('Correcao ativada')
+                mensagem = self.bits_ascii(bits_corrigidos)
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
-            
-            else:
+            elif sem_erro is None:
+                print('Sem protocolos de detecção de erros')
+                # Conversão dos bits desenquadrados para ASCII
+                mensagem = self.bits_ascii(bits_desenquadrados)
+                return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
+            elif sem_erro:
                 print('Sem erro')
                 # Conversão dos bits desenquadrados para ASCII
-                mensagem = ''.join(chr(int(bits_desenquadrados[i:i+8], 2)) for i in range(0, len(bits_desenquadrados), 8))
+                mensagem = self.bits_ascii(bits_desenquadrados)
                 return True, (mensagem, mod_digital, mod_portadora, bits_recebidos, tempo_sinal_digital, sinal_digital, tempo_sinal_portadora, sinal_portadora)
-
 
         except Exception as e:
             return False, f"Erro ao receber dados: {str(e)}"
